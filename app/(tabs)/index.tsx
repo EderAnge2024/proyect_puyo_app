@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import { View, Text } from 'react-native';
-
-export default function HomeScreen() {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Pantalla Home</Text>
-    </View>
-  );
-}
-=======
 import { Image } from 'expo-image';
 import { View, Button,Text, StyleSheet, SafeAreaView } from 'react-native';
 
@@ -66,4 +55,4 @@ const styles=StyleSheet.create({
     color:"white"
   }
 })
->>>>>>> afa2af35a214a0beae5eb36e5ec87245eff92922
+
