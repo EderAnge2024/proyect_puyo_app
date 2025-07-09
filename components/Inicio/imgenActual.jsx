@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ImageBackground, ActivityIndicator, ScrollView } from 'react-native';
 import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ImagenDelDia() {
   const [apodData, setApodData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const fecha = new Date();
 
   useEffect(() => {
@@ -17,6 +18,16 @@ export default function ImagenDelDia() {
         console.error('Error al obtener los datos de la NASA:', error);
         setLoading(false);
       });
+  }, []);
+
+  // Efecto para actualizar la hora en tiempo real
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    // Limpiar el timer cuando el componente se desmonte
+    return () => clearInterval(timer);
   }, []);
 
   const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -37,6 +48,8 @@ export default function ImagenDelDia() {
           </View>
         ) : apodData && apodData.media_type === 'image' ? (
           <>
+          <Image source={require('../Inicio/logo-codigos-del-cosmos.png')} style={styles.logo_codigos_del_cosmos} />
+            <Text style={styles.texto_logo}>Codigos del Cosmos</Text>
             <Text style={styles.dia}>{nombreDia}</Text>
             <Text style={styles.explanation}>{apodData.date}</Text>
             <View style={styles.continer_nombreImage}>
@@ -53,6 +66,11 @@ export default function ImagenDelDia() {
             <Text style={styles.link}>{apodData?.url}</Text>
           </View>
         )}
+        <View style={styles.hora}>
+          <Text style={styles.hora_text}>
+            {currentTime.toLocaleTimeString()}
+          </Text>
+        </View>
       </ScrollView>
     </ImageBackground>
   );
@@ -71,11 +89,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)', // oscurece un poco para mejor lectura
   },
+
+  logo_codigos_del_cosmos:{
+    justifyContent:"left",
+    position:"absolute",
+    zIndex:1000,
+    top:0,
+    left:0,
+    marginTop:40,
+    marginLeft:10,
+    width:40,
+    height:40
+
+  },
+  texto_logo:{
+    color:"#fff",
+    fontSize:20,
+    fontWeight:"bold",
+    justifyContent:"left",
+    position:"absolute",
+    zIndex:1000,
+    top:0,
+    left:0,
+    marginTop:50,
+    marginLeft:55
+  },
   centered: {
     alignItems: 'center',
   },
   dia: {
-    fontSize: 30,
+    fontSize: 35,
     fontWeight: 'bold',
     color: 'white',
   },
@@ -122,4 +165,11 @@ const styles = StyleSheet.create({
     color: '#1E90FF',
     textAlign: 'center',
   },
+  hora_text:{
+    color: '#fff',
+    fontSize: 70,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 50,
+  }
 });

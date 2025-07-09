@@ -9,7 +9,7 @@ export default function TabLayout() {
       screenOptions={{ 
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1a1a2e',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderTopWidth: 0,
           elevation: 8,
           shadowColor: '#000',
@@ -19,9 +19,9 @@ export default function TabLayout() {
           },
           shadowOpacity: 0.25,
           shadowRadius: 3.84,
-          height: Platform.OS === 'ios' ? 88 : 60,
+          height: Platform.OS === 'ios' ? 80 : 62,
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          paddingTop: 10,
+          paddingTop: 0,
         },
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#8a8a8a',
@@ -51,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="planets"
         options={{
-          title: 'Planetas',
+          title: 'Descrube mas!',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'planet' : 'planet-outline'} 
@@ -64,7 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="questions"
         options={{
-          title: 'Preguntas',
+          title: 'Minijuegos',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'help-circle' : 'help-circle-outline'} 
