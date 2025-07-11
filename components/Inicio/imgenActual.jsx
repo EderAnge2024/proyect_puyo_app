@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
+import SolarSystem from '@/components/simulacionRotacion/simuRotacion'
 
 export default function ImagenDelDia() {
   const [apodData, setApodData] = useState(null);
@@ -40,6 +41,7 @@ export default function ImagenDelDia() {
       style={styles.fondo}
       resizeMode="cover"
     >
+      <View style={styles.sistemaRotacion}><SolarSystem></SolarSystem></View>
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
           <View style={styles.centered}>
@@ -89,7 +91,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)', // oscurece un poco para mejor lectura
   },
-
+  sistemaRotacion:{
+    zIndex:1000,
+    position:'absolute',
+    backgroundColor: 'transparent',
+    right:15
+  },
   logo_codigos_del_cosmos:{
     justifyContent:"left",
     position:"absolute",
