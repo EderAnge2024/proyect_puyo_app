@@ -1,14 +1,4 @@
-<<<<<<< HEAD
-import { View, Text } from 'react-native';
 
-export default function HomeScreen() {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Pantalla Home</Text>
-    </View>
-  );
-}
-=======
 import { Image } from 'expo-image';
 import { View, Button,Text, StyleSheet, SafeAreaView } from 'react-native';
 
@@ -26,11 +16,11 @@ export default function HomeScreen() {
           <ImagenDelDia></ImagenDelDia>
         </View>
          
-        <View style={styles.footer}>
+        {/* <View style={styles.footer}>
           <Text style={styles.text}>Inicio</Text>
           <Text style={styles.text}>Planetas</Text>
           <Text style={styles.text}>Preguntas</Text>
-        </View>
+        </View> */}
       </View>
     </SafeAreaView>
     
@@ -49,21 +39,20 @@ const styles=StyleSheet.create({
     flex: 1,
     flexDirection:"column",
   },
-  footer:{
-    flexDirection:"row",
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    position:"absolute",
-    bottom:0,
-    left:0,
-    right:0,
-    padding: 20,
-    backgroundColor:'rgba(255, 255, 255, 0.33)',
-  },
+  // footer:{
+  //   flexDirection:"row",
+  //   alignItems: 'center',
+  //   justifyContent: 'space-around',
+  //   position:"absolute",
+  //   bottom:0,
+  //   left:0,
+  //   right:0,
+  //   padding: 20,
+  //   backgroundColor:'rgba(255, 255, 255, 0.33)',
+  // },
   text:{
     fontSize:26,
     fontWeight:"bold",
     color:"white"
   }
 })
->>>>>>> afa2af35a214a0beae5eb36e5ec87245eff92922
