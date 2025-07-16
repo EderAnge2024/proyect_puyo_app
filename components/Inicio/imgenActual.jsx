@@ -37,7 +37,7 @@ export default function ImagenDelDia() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/tierra-espcio.jpg')}
+      source={require('../../assets/images/tierra-espcio.jpg')}
       style={styles.fondo}
       resizeMode="cover"
     >
