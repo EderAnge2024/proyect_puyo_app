@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, ScrollView, Image, ImageBackground, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import SolarSystem from '@/components/simulacionRotacion/simuRotacion'
 
 interface Planeta {
   id: number;
@@ -53,29 +54,32 @@ const planetasInfo = {
 };
 
 export default function PlanetsScreen() {
-  const [sideMenuVisible, setSideMenuVisible] = useState(false);
-  const [planetaSeleccionado, setPlanetaSeleccionado] = useState<Planeta | null>(null);
-  const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoCeleste | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [objetoModalVisible, setObjetoModalVisible] = useState(false);
-  const [planetas, setPlanetas] = useState<Planeta[]>(planetasData);
-  const [loading, setLoading] = useState(true);
-  const [objetoLoading, setObjetoLoading] = useState(false);
-  const [nasaImages, setNasaImages] = useState<{[key: string]: string[]}>({});
-  const [objetosData, setObjetosData] = useState<ObjetoCeleste[]>([]);
-  const [tipoObjetoSeleccionado, setTipoObjetoSeleccionado] = useState<string | null>(null);
+  // todos los estados que necesitamos para la app
+  const [sideMenuVisible, setSideMenuVisible] = useState(false);  // Para mostrar/ocultar el menú lateral
+  const [planetaSeleccionado, setPlanetaSeleccionado] = useState<Planeta | null>(null);  // Guarda el planeta que clickeamos
+  const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoCeleste | null>(null);  // Guarda el objeto celeste seleccionado
+  const [modalVisible, setModalVisible] = useState(false);  // Controla si se ve el modal de planetas
+  const [objetoModalVisible, setObjetoModalVisible] = useState(false);  // Controla si se ve el modal de objetos celestes
+  const [planetas, setPlanetas] = useState<Planeta[]>(planetasData);  // Lista de todos los planetas
+  const [loading, setLoading] = useState(true);  // Para mostrar la pantalla de carga mientras buscamos datos
+  const [objetoLoading, setObjetoLoading] = useState(false);  // Para mostrar carga mientras buscamos objetos celestes
+  const [nasaImages, setNasaImages] = useState<{[key: string]: string[]}>({});  // Guarda las imágenes que traemos de la NASA
+  const [objetosData, setObjetosData] = useState<ObjetoCeleste[]>([]);  // Lista de objetos celestes que encontramos
+  const [tipoObjetoSeleccionado, setTipoObjetoSeleccionado] = useState<string | null>(null);  // Qué tipo de objeto estamos viendo
+  const [mostrarSistemaRotacion, setMostrarSistemaRotacion] = useState(false);  // Para mostrar la simulación del sistema solar
 
-  // Función para obtener imágenes de la NASA para cada planeta
+  // Esta función se ejecuta cuando la app arranca y busca imágenes de la NASA para cada planeta
   useEffect(() => {
     const fetchNasaData = async () => {
       try {
         setLoading(true);
+        // Tenemos los nombres en inglés porque la API de NASA no habla español
         const planetNames = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'];
         const planetNamesSpanish = ['Mercurio', 'Venus', 'Tierra', 'Marte', 'Júpiter', 'Saturno', 'Urano', 'Neptuno'];
         
         const imageResults: {[key: string]: string[]} = {};
         
-        // Hacer solicitudes a la API de NASA para cada planeta
+        // Vamos planeta por planeta pidiendo sus fotos a la NASA
         for (let i = 0; i < planetNames.length; i++) {
           const planetName = planetNames[i];
           const planetNameSpanish = planetNamesSpanish[i];
@@ -85,9 +89,9 @@ export default function PlanetsScreen() {
           );
           
           if (response.data && response.data.collection && response.data.collection.items) {
-            // Obtener las URLs de las imágenes
+            // Nos quedamos solo con 5 imágenes por planeta (para no llenar la memoria del teléfono)
             const images = response.data.collection.items
-              .slice(0, 5) // Limitar a 5 imágenes por planeta
+              .slice(0, 5)
               .map((item: any) => {
                 if (item.links && item.links.length > 0) {
                   return item.links[0].href;
@@ -100,21 +104,19 @@ export default function PlanetsScreen() {
           }
         }
         
-        // Actualizar el estado con las imágenes obtenidas
+        // Guardamos todas las imágenes que encontramos
         setNasaImages(imageResults);
         
-        // Actualizar los datos de los planetas con las imágenes de la NASA
-        const updatedPlanetas = planetas.map(planeta => {
-          return {
-            ...planeta,
-            nasaImages: imageResults[planeta.nombre] || []
-          };
-        });
+        // Actualizamos la info de cada planeta con sus nuevas fotos
+        const updatedPlanetas = planetas.map(planeta => ({
+          ...planeta,
+          nasaImages: imageResults[planeta.nombre] || []
+        }));
         
         setPlanetas(updatedPlanetas);
         setLoading(false);
       } catch (error) {
-        console.error('Error al obtener datos de la NASA:', error);
+        console.error('Ups! Algo salió mal al buscar datos de la NASA:', error);
         setLoading(false);
       }
     };
@@ -122,15 +124,23 @@ export default function PlanetsScreen() {
     fetchNasaData();
   }, []);
 
-  // Función para obtener datos de objetos celestes desde la API de NASA
+  // Esta función se encarga de buscar info cuando seleccionamos algo del menú
   const fetchObjetosCelestes = async (tipo: string) => {
     setObjetoLoading(true);
     setTipoObjetoSeleccionado(tipo);
+    setMostrarSistemaRotacion(false);
+    
+    // Si eligieron ver el Sistema Solar, mostramos nuestra simulación
+    if (tipo === 'Sistema Solar') {
+      setMostrarSistemaRotacion(true);
+      setObjetoLoading(false);
+      return;
+    }
     
     try {
-      let endpoint = '';
       let searchQuery = '';
       
+      // Traducimos los nombres al inglés para la API
       switch(tipo) {
         case 'Meteoritos':
           searchQuery = 'meteorite';
@@ -151,14 +161,16 @@ export default function PlanetsScreen() {
           searchQuery = 'space';
       }
       
-      // Usar la API de imágenes de NASA para obtener datos
+      // Le pedimos a la NASA que nos pase datos sobre el objeto que queremos ver
       const response = await axios.get(
         `https://images-api.nasa.gov/search?q=${searchQuery}&media_type=image`
       );
       
       if (response.data && response.data.collection && response.data.collection.items) {
+        // Nos quedamos con los primeros 10 resultados
         const items = response.data.collection.items.slice(0, 10);
         const objetos: ObjetoCeleste[] = items.map((item: any, index: number) => {
+          // Sacamos toda la info útil de cada objeto
           const title = item.data && item.data[0] && item.data[0].title ? item.data[0].title : `${tipo} ${index + 1}`;
           const description = item.data && item.data[0] && item.data[0].description ? item.data[0].description : 'Sin descripción disponible';
           const imageUrl = item.links && item.links[0] ? item.links[0].href : '';
@@ -177,41 +189,45 @@ export default function PlanetsScreen() {
         setObjetosData(objetos);
       }
     } catch (error) {
-      console.error(`Error al obtener datos de ${tipo} desde la NASA:`, error);
+      console.error(`Ups! No pudimos encontrar datos de ${tipo}:`, error);
     } finally {
       setObjetoLoading(false);
     }
   };
 
+  // Estas son funciones simples que manejan la interfaz
+
   const toggleSideMenu = () => {
-    setSideMenuVisible(!sideMenuVisible);
+    setSideMenuVisible(!sideMenuVisible);  // Abre/cierra el menú lateral
   };
 
   const seleccionarPlaneta = (planeta: Planeta) => {
-    setPlanetaSeleccionado(planeta);
-    setModalVisible(true);
+    setPlanetaSeleccionado(planeta);  // Guarda el planeta que tocamos
+    setModalVisible(true);  // Muestra su información en un modal
   };
 
   const seleccionarObjeto = (objeto: ObjetoCeleste) => {
-    setObjetoSeleccionado(objeto);
-    setObjetoModalVisible(true);
-    setSideMenuVisible(false);
+    setObjetoSeleccionado(objeto);  // Guarda el objeto celeste que tocamos
+    setObjetoModalVisible(true);  // Muestra su información en un modal
+    setSideMenuVisible(false);  // Cierra el menú lateral
   };
 
   const cerrarModal = () => {
-    setModalVisible(false);
+    setModalVisible(false);  // Cierra el modal de planetas
   };
 
   const cerrarObjetoModal = () => {
-    setObjetoModalVisible(false);
+    setObjetoModalVisible(false);  // Cierra el modal de objetos celestes
   };
 
+  // Aquí definimos todas las opciones que aparecen en el menú lateral
   const opcionesCelestes: Opcion[] = [
-    { id: 1, titulo: 'Meteoritos', accion: () => fetchObjetosCelestes('Meteoritos') },
-    { id: 2, titulo: 'Estrellas', accion: () => fetchObjetosCelestes('Estrellas') },
-    { id: 3, titulo: 'Cometas', accion: () => fetchObjetosCelestes('Cometas') },
-    { id: 4, titulo: 'Satélites', accion: () => fetchObjetosCelestes('Satélites') },
-    { id: 5, titulo: 'Lunas', accion: () => fetchObjetosCelestes('Lunas') },
+    { id: 1, titulo: 'Sistema Solar', accion: () => { fetchObjetosCelestes('Sistema Solar'); setSideMenuVisible(false); } },
+    { id: 2, titulo: 'Meteoritos', accion: () => { fetchObjetosCelestes('Meteoritos'); setSideMenuVisible(false); } },
+    { id: 3, titulo: 'Estrellas', accion: () => { fetchObjetosCelestes('Estrellas'); setSideMenuVisible(false); } },
+    { id: 4, titulo: 'Cometas', accion: () => { fetchObjetosCelestes('Cometas'); setSideMenuVisible(false); } },
+    { id: 5, titulo: 'Satélites', accion: () => { fetchObjetosCelestes('Satélites'); setSideMenuVisible(false); } },
+    { id: 6, titulo: 'Lunas', accion: () => { fetchObjetosCelestes('Lunas'); setSideMenuVisible(false); } },
   ];
 
   return (
@@ -222,7 +238,19 @@ export default function PlanetsScreen() {
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.titulo}>Planetas del Sistema Solar</Text>
+          <View style={styles.headerLeft}>
+            {tipoObjetoSeleccionado && (
+              <TouchableOpacity 
+                onPress={() => setTipoObjetoSeleccionado(null)} 
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.titulo}>
+              {tipoObjetoSeleccionado || 'Planetas del Sistema Solar'}
+            </Text>
+          </View>
           <View style={styles.headerButtons}>
             <TouchableOpacity onPress={toggleSideMenu} style={styles.menuButton}>
               <Ionicons name="menu" size={28} color="#fff" />
@@ -235,14 +263,12 @@ export default function PlanetsScreen() {
             <ActivityIndicator size="large" color="#00f" />
             <Text style={styles.text}>Cargando datos de planetas desde la NASA...</Text>
           </View>
+        ) : mostrarSistemaRotacion ? (
+          <View style={styles.sistemaRotacion}>
+            <SolarSystem />
+          </View>
         ) : tipoObjetoSeleccionado ? (
           <>
-            <View style={styles.subHeader}>
-              <Text style={styles.subTitulo}>{tipoObjetoSeleccionado}</Text>
-              <TouchableOpacity onPress={() => setTipoObjetoSeleccionado(null)} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
             {objetoLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#00f" />
@@ -445,20 +471,26 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: 'rgba(26, 26, 46, 0.8)',
+    backgroundColor: 'rgba(26, 26, 46, 0.5)',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
+    marginTop: 30,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+
   },
   titulo: {
     fontSize: 20,
@@ -468,6 +500,10 @@ const styles = StyleSheet.create({
   menuButton: {
     padding: 5,
     marginLeft: 10,
+    zIndex: 2000,
+  },
+  backButton: {
+    padding: 7,
   },
   subHeader: {
     flexDirection: 'row',
@@ -481,17 +517,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  backButton: {
-    padding: 5,
-  },
   sideMenuDropdown: {
     position: 'absolute',
-    top: 60,
+    top: 45,
     right: 10,
-    backgroundColor: 'rgba(42, 42, 64, 0.9)',
+    backgroundColor: 'rgba(25, 25, 25, 0.9)',
     borderRadius: 8,
     padding: 5,
-    width: 220,
+    width: 200,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -511,7 +544,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#444',
   },
   menuItem: {
-    padding: 12,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#444',
   },
@@ -663,4 +696,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
   },
+  sistemaRotacion: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000011',
+    width: '100%',
+    height: '100%',
+    paddingVertical: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  }
 });

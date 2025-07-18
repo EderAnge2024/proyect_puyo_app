@@ -1,7 +1,6 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
-import SolarSystem from '@/components/simulacionRotacion/simuRotacion'
 
 export default function ImagenDelDia() {
   const [apodData, setApodData] = useState(null);
@@ -41,7 +40,6 @@ export default function ImagenDelDia() {
       style={styles.fondo}
       resizeMode="cover"
     >
-      <View style={styles.sistemaRotacion}><SolarSystem></SolarSystem></View>
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
           <View style={styles.centered}>
