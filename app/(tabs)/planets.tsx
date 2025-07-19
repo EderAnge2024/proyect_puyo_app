@@ -1,8 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, ScrollView, Image, ImageBackground, ActivityIndicator } from 'react-native';
+import SolarSystem from '@/components/simulacionRotacion/simuRotacion';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import SolarSystem from '@/components/simulacionRotacion/simuRotacion'
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState } from 'react';
+import {
+    Animated,
+    Dimensions,
+    Image,
+    ImageBackground,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 interface Planeta {
   id: number;
@@ -17,6 +33,8 @@ interface Opcion {
   id: number;
   titulo: string;
   accion: () => void;
+  icon: string;
+  color: string;
 }
 
 interface ObjetoCeleste {
@@ -54,32 +72,30 @@ const planetasInfo = {
 };
 
 export default function PlanetsScreen() {
-  // todos los estados que necesitamos para la app
-  const [sideMenuVisible, setSideMenuVisible] = useState(false);  // Para mostrar/ocultar el menú lateral
-  const [planetaSeleccionado, setPlanetaSeleccionado] = useState<Planeta | null>(null);  // Guarda el planeta que clickeamos
-  const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoCeleste | null>(null);  // Guarda el objeto celeste seleccionado
-  const [modalVisible, setModalVisible] = useState(false);  // Controla si se ve el modal de planetas
-  const [objetoModalVisible, setObjetoModalVisible] = useState(false);  // Controla si se ve el modal de objetos celestes
-  const [planetas, setPlanetas] = useState<Planeta[]>(planetasData);  // Lista de todos los planetas
-  const [loading, setLoading] = useState(true);  // Para mostrar la pantalla de carga mientras buscamos datos
-  const [objetoLoading, setObjetoLoading] = useState(false);  // Para mostrar carga mientras buscamos objetos celestes
-  const [nasaImages, setNasaImages] = useState<{[key: string]: string[]}>({});  // Guarda las imágenes que traemos de la NASA
-  const [objetosData, setObjetosData] = useState<ObjetoCeleste[]>([]);  // Lista de objetos celestes que encontramos
-  const [tipoObjetoSeleccionado, setTipoObjetoSeleccionado] = useState<string | null>(null);  // Qué tipo de objeto estamos viendo
-  const [mostrarSistemaRotacion, setMostrarSistemaRotacion] = useState(false);  // Para mostrar la simulación del sistema solar
+  const [sideMenuVisible, setSideMenuVisible] = useState(false);
+  const [planetaSeleccionado, setPlanetaSeleccionado] = useState<Planeta | null>(null);
+  const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoCeleste | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [objetoModalVisible, setObjetoModalVisible] = useState(false);
+  const [planetas, setPlanetas] = useState<Planeta[]>(planetasData);
+  const [loading, setLoading] = useState(true);
+  const [objetoLoading, setObjetoLoading] = useState(false);
+  const [nasaImages, setNasaImages] = useState<{[key: string]: string[]}>({});
+  const [objetosData, setObjetosData] = useState<ObjetoCeleste[]>([]);
+  const [tipoObjetoSeleccionado, setTipoObjetoSeleccionado] = useState<string | null>(null);
+  const [mostrarSistemaRotacion, setMostrarSistemaRotacion] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
-  // Esta función se ejecuta cuando la app arranca y busca imágenes de la NASA para cada planeta
   useEffect(() => {
     const fetchNasaData = async () => {
       try {
         setLoading(true);
-        // Tenemos los nombres en inglés porque la API de NASA no habla español
         const planetNames = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'];
         const planetNamesSpanish = ['Mercurio', 'Venus', 'Tierra', 'Marte', 'Júpiter', 'Saturno', 'Urano', 'Neptuno'];
         
         const imageResults: {[key: string]: string[]} = {};
         
-        // Vamos planeta por planeta pidiendo sus fotos a la NASA
         for (let i = 0; i < planetNames.length; i++) {
           const planetName = planetNames[i];
           const planetNameSpanish = planetNamesSpanish[i];
@@ -89,7 +105,6 @@ export default function PlanetsScreen() {
           );
           
           if (response.data && response.data.collection && response.data.collection.items) {
-            // Nos quedamos solo con 5 imágenes por planeta (para no llenar la memoria del teléfono)
             const images = response.data.collection.items
               .slice(0, 5)
               .map((item: any) => {
@@ -104,10 +119,8 @@ export default function PlanetsScreen() {
           }
         }
         
-        // Guardamos todas las imágenes que encontramos
         setNasaImages(imageResults);
         
-        // Actualizamos la info de cada planeta con sus nuevas fotos
         const updatedPlanetas = planetas.map(planeta => ({
           ...planeta,
           nasaImages: imageResults[planeta.nombre] || []
@@ -115,8 +128,22 @@ export default function PlanetsScreen() {
         
         setPlanetas(updatedPlanetas);
         setLoading(false);
+
+        // Animaciones de entrada
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]).start();
       } catch (error) {
-        console.error('Ups! Algo salió mal al buscar datos de la NASA:', error);
+        console.error('Error al obtener los datos de la NASA:', error);
         setLoading(false);
       }
     };
@@ -124,13 +151,11 @@ export default function PlanetsScreen() {
     fetchNasaData();
   }, []);
 
-  // Esta función se encarga de buscar info cuando seleccionamos algo del menú
   const fetchObjetosCelestes = async (tipo: string) => {
     setObjetoLoading(true);
     setTipoObjetoSeleccionado(tipo);
     setMostrarSistemaRotacion(false);
     
-    // Si eligieron ver el Sistema Solar, mostramos nuestra simulación
     if (tipo === 'Sistema Solar') {
       setMostrarSistemaRotacion(true);
       setObjetoLoading(false);
@@ -140,7 +165,6 @@ export default function PlanetsScreen() {
     try {
       let searchQuery = '';
       
-      // Traducimos los nombres al inglés para la API
       switch(tipo) {
         case 'Meteoritos':
           searchQuery = 'meteorite';
@@ -161,16 +185,13 @@ export default function PlanetsScreen() {
           searchQuery = 'space';
       }
       
-      // Le pedimos a la NASA que nos pase datos sobre el objeto que queremos ver
       const response = await axios.get(
         `https://images-api.nasa.gov/search?q=${searchQuery}&media_type=image`
       );
       
       if (response.data && response.data.collection && response.data.collection.items) {
-        // Nos quedamos con los primeros 10 resultados
         const items = response.data.collection.items.slice(0, 10);
         const objetos: ObjetoCeleste[] = items.map((item: any, index: number) => {
-          // Sacamos toda la info útil de cada objeto
           const title = item.data && item.data[0] && item.data[0].title ? item.data[0].title : `${tipo} ${index + 1}`;
           const description = item.data && item.data[0] && item.data[0].description ? item.data[0].description : 'Sin descripción disponible';
           const imageUrl = item.links && item.links[0] ? item.links[0].href : '';
@@ -189,55 +210,133 @@ export default function PlanetsScreen() {
         setObjetosData(objetos);
       }
     } catch (error) {
-      console.error(`Ups! No pudimos encontrar datos de ${tipo}:`, error);
+      console.error(`Error al obtener datos de ${tipo}:`, error);
     } finally {
       setObjetoLoading(false);
     }
   };
 
-  // Estas son funciones simples que manejan la interfaz
-
   const toggleSideMenu = () => {
-    setSideMenuVisible(!sideMenuVisible);  // Abre/cierra el menú lateral
+    setSideMenuVisible(!sideMenuVisible);
   };
 
   const seleccionarPlaneta = (planeta: Planeta) => {
-    setPlanetaSeleccionado(planeta);  // Guarda el planeta que tocamos
-    setModalVisible(true);  // Muestra su información en un modal
+    setPlanetaSeleccionado(planeta);
+    setModalVisible(true);
   };
 
   const seleccionarObjeto = (objeto: ObjetoCeleste) => {
-    setObjetoSeleccionado(objeto);  // Guarda el objeto celeste que tocamos
-    setObjetoModalVisible(true);  // Muestra su información en un modal
-    setSideMenuVisible(false);  // Cierra el menú lateral
+    setObjetoSeleccionado(objeto);
+    setObjetoModalVisible(true);
+    setSideMenuVisible(false);
   };
 
   const cerrarModal = () => {
-    setModalVisible(false);  // Cierra el modal de planetas
+    setModalVisible(false);
   };
 
   const cerrarObjetoModal = () => {
-    setObjetoModalVisible(false);  // Cierra el modal de objetos celestes
+    setObjetoModalVisible(false);
   };
 
-  // Aquí definimos todas las opciones que aparecen en el menú lateral
   const opcionesCelestes: Opcion[] = [
-    { id: 1, titulo: 'Sistema Solar', accion: () => { fetchObjetosCelestes('Sistema Solar'); setSideMenuVisible(false); } },
-    { id: 2, titulo: 'Meteoritos', accion: () => { fetchObjetosCelestes('Meteoritos'); setSideMenuVisible(false); } },
-    { id: 3, titulo: 'Estrellas', accion: () => { fetchObjetosCelestes('Estrellas'); setSideMenuVisible(false); } },
-    { id: 4, titulo: 'Cometas', accion: () => { fetchObjetosCelestes('Cometas'); setSideMenuVisible(false); } },
-    { id: 5, titulo: 'Satélites', accion: () => { fetchObjetosCelestes('Satélites'); setSideMenuVisible(false); } },
-    { id: 6, titulo: 'Lunas', accion: () => { fetchObjetosCelestes('Lunas'); setSideMenuVisible(false); } },
+    { id: 1, titulo: 'Sistema Solar', accion: () => { fetchObjetosCelestes('Sistema Solar'); setSideMenuVisible(false); }, icon: 'planet', color: '#00d4ff' },
+    { id: 2, titulo: 'Meteoritos', accion: () => { fetchObjetosCelestes('Meteoritos'); setSideMenuVisible(false); }, icon: 'flash', color: '#ffd700' },
+    { id: 3, titulo: 'Estrellas', accion: () => { fetchObjetosCelestes('Estrellas'); setSideMenuVisible(false); }, icon: 'star', color: '#ff6b6b' },
+    { id: 4, titulo: 'Cometas', accion: () => { fetchObjetosCelestes('Cometas'); setSideMenuVisible(false); }, icon: 'navigate', color: '#51cf66' },
+    { id: 5, titulo: 'Satélites', accion: () => { fetchObjetosCelestes('Satélites'); setSideMenuVisible(false); }, icon: 'radio', color: '#ae8fff' },
+    { id: 6, titulo: 'Lunas', accion: () => { fetchObjetosCelestes('Lunas'); setSideMenuVisible(false); }, icon: 'moon', color: '#ffa726' },
   ];
+
+  const PlanetCard = ({ planeta }: { planeta: Planeta }) => (
+    <Animated.View
+      style={[
+        styles.planetCard,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      <TouchableOpacity 
+        style={styles.planetCardTouchable}
+        onPress={() => seleccionarPlaneta(planeta)}
+      >
+        <View style={styles.planetImageContainer}>
+          <Image 
+            source={{ uri: planeta.imagen }} 
+            style={styles.planetImage} 
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.planetImageOverlay}
+          />
+        </View>
+        <View style={styles.planetInfo}>
+          <Text style={styles.planetName}>{planeta.nombre}</Text>
+          <Text style={styles.planetDescription} numberOfLines={2}>
+            {planeta.descripcion}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
+  const ObjectCard = ({ objeto }: { objeto: ObjetoCeleste }) => (
+    <Animated.View
+      style={[
+        styles.objectCard,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      <TouchableOpacity 
+        style={styles.objectCardTouchable}
+        onPress={() => seleccionarObjeto(objeto)}
+      >
+        <View style={styles.objectImageContainer}>
+          <Image 
+            source={{ uri: objeto.imagen }} 
+            style={styles.objectImage} 
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.objectImageOverlay}
+          />
+        </View>
+        <View style={styles.objectInfo}>
+          <Text style={styles.objectName}>{objeto.nombre}</Text>
+          <Text style={styles.objectDescription} numberOfLines={2}>
+            {objeto.descripcion}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
   return (
     <ImageBackground
       source={require('../../assets/images/tierra-espcio.jpg')}
-      style={styles.fondo}
+      style={styles.container}
       resizeMode="cover"
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <Animated.View 
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           <View style={styles.headerLeft}>
             {tipoObjetoSeleccionado && (
               <TouchableOpacity 
@@ -247,231 +346,289 @@ export default function PlanetsScreen() {
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
             )}
-            <Text style={styles.titulo}>
-              {tipoObjetoSeleccionado || 'Planetas del Sistema Solar'}
-            </Text>
+            <View style={styles.titleContainer}>
+              <Ionicons name="planet" size={24} color="#00d4ff" />
+              <Text style={styles.title}>
+                {tipoObjetoSeleccionado || 'Exploración Espacial'}
+              </Text>
+            </View>
           </View>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity onPress={toggleSideMenu} style={styles.menuButton}>
-              <Ionicons name="menu" size={28} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
+          <TouchableOpacity onPress={toggleSideMenu} style={styles.menuButton}>
+            <Ionicons name="menu" size={28} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
 
+        {/* Contenido Principal */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#00f" />
-            <Text style={styles.text}>Cargando datos de planetas desde la NASA...</Text>
+            <View style={styles.loadingSpinner} />
+            <Text style={styles.loadingText}>Explorando el cosmos...</Text>
           </View>
         ) : mostrarSistemaRotacion ? (
-          <View style={styles.sistemaRotacion}>
+          <View style={styles.solarSystemContainer}>
             <SolarSystem />
           </View>
         ) : tipoObjetoSeleccionado ? (
           <>
             {objetoLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#00f" />
-                <Text style={styles.text}>Cargando datos de {tipoObjetoSeleccionado} desde la NASA...</Text>
+                <View style={styles.loadingSpinner} />
+                <Text style={styles.loadingText}>Descubriendo {tipoObjetoSeleccionado}...</Text>
               </View>
             ) : (
-              <ScrollView style={styles.planetList} contentContainerStyle={styles.planetListContent}>
-                {objetosData.map(objeto => (
-                  <TouchableOpacity 
-                    key={objeto.id} 
-                    style={styles.planetaCard}
-                    onPress={() => seleccionarObjeto(objeto)}
-                  >
-                    <View style={styles.planetaImageContainer}>
-                      <Image 
-                        source={{ uri: objeto.imagen }} 
-                        style={styles.planetaImagen} 
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.planetaNombre}>{objeto.nombre}</Text>
-                  </TouchableOpacity>
-                ))}
+              <ScrollView 
+                style={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+              >
+                <Text style={styles.sectionTitle}>{tipoObjetoSeleccionado}</Text>
+                <View style={styles.objectsGrid}>
+                  {objetosData.map(objeto => (
+                    <ObjectCard key={objeto.id} objeto={objeto} />
+                  ))}
+                </View>
               </ScrollView>
             )}
           </>
         ) : (
-          <ScrollView style={styles.planetList} contentContainerStyle={styles.planetListContent}>
-            {planetas.map(planeta => (
-              <TouchableOpacity 
-                key={planeta.id} 
-                style={styles.planetaCard}
-                onPress={() => seleccionarPlaneta(planeta)}
-              >
-                <View style={styles.planetaImageContainer}>
-                  <Image 
-                    source={{ uri: planeta.imagen }} 
-                    style={styles.planetaImagen} 
-                    resizeMode="cover"
-                  />
-                </View>
-                <Text style={styles.planetaNombre}>{planeta.nombre}</Text>
-              </TouchableOpacity>
-            ))}
+          <ScrollView 
+            style={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <Text style={styles.sectionTitle}>Planetas del Sistema Solar</Text>
+            <View style={styles.planetsGrid}>
+              {planetas.map(planeta => (
+                <PlanetCard key={planeta.id} planeta={planeta} />
+              ))}
+            </View>
           </ScrollView>
         )}
 
+        {/* Menú Desplegable */}
+        {sideMenuVisible && (
+          <View style={styles.sideMenuDropdown}>
+            <View style={styles.sideMenuHeader}>
+              <Ionicons name="telescope" size={20} color="#00d4ff" />
+              <Text style={styles.sideMenuTitle}>Explorar</Text>
+            </View>
+            {opcionesCelestes.map(opcion => (
+              <TouchableOpacity 
+                key={opcion.id} 
+                style={styles.menuItem} 
+                onPress={opcion.accion}
+              >
+                <View style={styles.menuItemContent}>
+                  <Ionicons name={opcion.icon as any} size={18} color={opcion.color} />
+                  <Text style={styles.menuText}>{opcion.titulo}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Modal de Planeta */}
         <Modal
           animationType="slide"
           transparent={true}
           visible={modalVisible}
           onRequestClose={cerrarModal}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {planetaSeleccionado && (
-                <ScrollView contentContainerStyle={styles.modalScroll}>
-                  <Image 
-                    source={{ uri: planetaSeleccionado.imagen }} 
-                    style={styles.modalImagen} 
-                  />
-                  <Text style={styles.modalTitulo}>{planetaSeleccionado.nombre}</Text>
-                  <Text style={styles.modalDescripcion}>{planetaSeleccionado.descripcion}</Text>
-                  
-                  <Text style={styles.modalSubtitulo}>Datos científicos:</Text>
-                  <View style={styles.datosPlaneta}>
-                    <Text style={styles.datoTexto}>• Diámetro: {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.diametro}</Text>
-                    <Text style={styles.datoTexto}>• Distancia al Sol: {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.distanciaSol}</Text>
-                    <Text style={styles.datoTexto}>• Período orbital: {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.periodoOrbital}</Text>
-                    <Text style={styles.datoTexto}>• Temperatura media: {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.temperatura}</Text>
-                    <Text style={styles.datoTexto}>• Número de lunas: {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.lunas}</Text>
-                  </View>
-                  
-                  {nasaImages[planetaSeleccionado.nombre] && nasaImages[planetaSeleccionado.nombre].length > 0 && (
-                    <>
-                      <Text style={styles.modalSubtitulo}>Imágenes de la NASA:</Text>
-                      <ScrollView horizontal={true} style={styles.nasaImagesContainer}>
-                        {nasaImages[planetaSeleccionado.nombre].map((imageUrl, index) => (
-                          <Image 
-                            key={index}
-                            source={{ uri: imageUrl }} 
-                            style={styles.nasaImage} 
-                          />
-                        ))}
-                      </ScrollView>
-                    </>
-                  )}
-                </ScrollView>
-              )}
-              <TouchableOpacity
-                style={styles.cerrarBoton}
-                onPress={cerrarModal}
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Información del Planeta</Text>
+                <TouchableOpacity onPress={cerrarModal} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView 
+                style={styles.modalContent}
+                contentContainerStyle={styles.modalContentContainer}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.cerrarTexto}>Cerrar</Text>
-              </TouchableOpacity>
+                {planetaSeleccionado && (
+                  <>
+                    <View style={styles.modalImageContainer}>
+                      <Image 
+                        source={{ uri: planetaSeleccionado.imagen }} 
+                        style={styles.modalImage} 
+                        resizeMode="cover"
+                      />
+                    </View>
+                    
+                    <View style={styles.modalInfoContainer}>
+                      <Text style={styles.modalPlanetName}>{planetaSeleccionado.nombre}</Text>
+                      <Text style={styles.modalDescription}>{planetaSeleccionado.descripcion}</Text>
+                      
+                      <View style={styles.scientificData}>
+                        <Text style={styles.dataTitle}>Datos Científicos</Text>
+                        <View style={styles.dataGrid}>
+                          <View style={styles.dataItem}>
+                            <Ionicons name="resize" size={16} color="#00d4ff" />
+                            <Text style={styles.dataLabel}>Diámetro</Text>
+                            <Text style={styles.dataValue}>
+                              {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.diametro}
+                            </Text>
+                          </View>
+                          <View style={styles.dataItem}>
+                            <Ionicons name="sunny" size={16} color="#ffd700" />
+                            <Text style={styles.dataLabel}>Distancia al Sol</Text>
+                            <Text style={styles.dataValue}>
+                              {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.distanciaSol}
+                            </Text>
+                          </View>
+                          <View style={styles.dataItem}>
+                            <Ionicons name="time" size={16} color="#51cf66" />
+                            <Text style={styles.dataLabel}>Período Orbital</Text>
+                            <Text style={styles.dataValue}>
+                              {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.periodoOrbital}
+                            </Text>
+                          </View>
+                          <View style={styles.dataItem}>
+                            <Ionicons name="thermometer" size={16} color="#ff6b6b" />
+                            <Text style={styles.dataLabel}>Temperatura</Text>
+                            <Text style={styles.dataValue}>
+                              {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.temperatura}
+                            </Text>
+                          </View>
+                          <View style={styles.dataItem}>
+                            <Ionicons name="moon" size={16} color="#ae8fff" />
+                            <Text style={styles.dataLabel}>Lunas</Text>
+                            <Text style={styles.dataValue}>
+                              {planetasInfo[planetaSeleccionado.nombre as keyof typeof planetasInfo]?.lunas}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      
+                      {nasaImages[planetaSeleccionado.nombre] && nasaImages[planetaSeleccionado.nombre].length > 0 && (
+                        <View style={styles.nasaSection}>
+                          <Text style={styles.nasaTitle}>Imágenes de la NASA</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {nasaImages[planetaSeleccionado.nombre].map((imageUrl, index) => (
+                              <Image 
+                                key={index}
+                                source={{ uri: imageUrl }} 
+                                style={styles.nasaImage} 
+                                resizeMode="cover"
+                              />
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </ScrollView>
             </View>
           </View>
         </Modal>
 
+        {/* Modal de Objeto Celeste */}
         <Modal
           animationType="slide"
           transparent={true}
           visible={objetoModalVisible}
           onRequestClose={cerrarObjetoModal}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {objetoSeleccionado && (
-                <ScrollView contentContainerStyle={styles.modalScroll}>
-                  <Image 
-                    source={{ uri: objetoSeleccionado.imagen }} 
-                    style={styles.modalImagen} 
-                  />
-                  <Text style={styles.modalTitulo}>{objetoSeleccionado.nombre}</Text>
-                  <Text style={styles.modalDescripcion}>{objetoSeleccionado.descripcion}</Text>
-                  
-                  {objetoSeleccionado.nasaInfo && (
-                    <>
-                      <Text style={styles.modalSubtitulo}>Datos de la NASA:</Text>
-                      <View style={styles.datosPlaneta}>
-                        {(() => {
-                          try {
-                            const info = JSON.parse(objetoSeleccionado.nasaInfo);
-                            return (
-                              <>
-                                {info.date_created && (
-                                  <Text style={styles.datoTexto}>• Fecha: {new Date(info.date_created).toLocaleDateString()}</Text>
-                                )}
-                                {info.center && (
-                                  <Text style={styles.datoTexto}>• Centro NASA: {info.center}</Text>
-                                )}
-                                {info.keywords && info.keywords.length > 0 && (
-                                  <Text style={styles.datoTexto}>• Palabras clave: {info.keywords.join(', ')}</Text>
-                                )}
-                                {info.location && (
-                                  <Text style={styles.datoTexto}>• Ubicación: {info.location}</Text>
-                                )}
-                                {info.nasa_id && (
-                                  <Text style={styles.datoTexto}>• ID NASA: {info.nasa_id}</Text>
-                                )}
-                              </>
-                            );
-                          } catch (e) {
-                            return <Text style={styles.datoTexto}>No hay información adicional disponible</Text>;
-                          }
-                        })()}
-                      </View>
-                    </>
-                  )}
-                  
-                  {objetoSeleccionado.nasaImages && objetoSeleccionado.nasaImages.length > 1 && (
-                    <>
-                      <Text style={styles.modalSubtitulo}>Imágenes adicionales:</Text>
-                      <ScrollView horizontal={true} style={styles.nasaImagesContainer}>
-                        {objetoSeleccionado.nasaImages.map((imageUrl, index) => (
-                          <Image 
-                            key={index}
-                            source={{ uri: imageUrl }} 
-                            style={styles.nasaImage} 
-                          />
-                        ))}
-                      </ScrollView>
-                    </>
-                  )}
-                </ScrollView>
-              )}
-              <TouchableOpacity
-                style={styles.cerrarBoton}
-                onPress={cerrarObjetoModal}
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Información del Objeto</Text>
+                <TouchableOpacity onPress={cerrarObjetoModal} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView 
+                style={styles.modalContent}
+                contentContainerStyle={styles.modalContentContainer}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.cerrarTexto}>Cerrar</Text>
-              </TouchableOpacity>
+                {objetoSeleccionado && (
+                  <>
+                    <View style={styles.modalImageContainer}>
+                      <Image 
+                        source={{ uri: objetoSeleccionado.imagen }} 
+                        style={styles.modalImage} 
+                        resizeMode="cover"
+                      />
+                    </View>
+                    
+                    <View style={styles.modalInfoContainer}>
+                      <Text style={styles.modalPlanetName}>{objetoSeleccionado.nombre}</Text>
+                      <Text style={styles.modalDescription}>{objetoSeleccionado.descripcion}</Text>
+                      
+                      {objetoSeleccionado.nasaInfo && (
+                        <View style={styles.nasaDataSection}>
+                          <Text style={styles.dataTitle}>Datos de la NASA</Text>
+                          <View style={styles.nasaDataContent}>
+                            {(() => {
+                              try {
+                                const info = JSON.parse(objetoSeleccionado.nasaInfo);
+                                return (
+                                  <>
+                                    {info.date_created && (
+                                      <View style={styles.nasaDataItem}>
+                                        <Ionicons name="calendar" size={16} color="#00d4ff" />
+                                        <Text style={styles.nasaDataText}>
+                                          Fecha: {new Date(info.date_created).toLocaleDateString()}
+                                        </Text>
+                                      </View>
+                                    )}
+                                    {info.center && (
+                                      <View style={styles.nasaDataItem}>
+                                        <Ionicons name="business" size={16} color="#ffd700" />
+                                        <Text style={styles.nasaDataText}>
+                                          Centro: {info.center}
+                                        </Text>
+                                      </View>
+                                    )}
+                                    {info.keywords && info.keywords.length > 0 && (
+                                      <View style={styles.nasaDataItem}>
+                                        <Ionicons name="pricetag" size={16} color="#51cf66" />
+                                        <Text style={styles.nasaDataText}>
+                                          Palabras clave: {info.keywords.join(', ')}
+                                        </Text>
+                                      </View>
+                                    )}
+                                  </>
+                                );
+                              } catch (e) {
+                                return (
+                                  <Text style={styles.nasaDataText}>
+                                    No hay información adicional disponible
+                                  </Text>
+                                );
+                              }
+                            })()}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </ScrollView>
             </View>
           </View>
         </Modal>
       </SafeAreaView>
-      {sideMenuVisible && (
-        <View style={styles.sideMenuDropdown}>
-          <Text style={styles.sideMenuTitle}>Objetos Celestes</Text>
-          {opcionesCelestes.map(opcion => (
-            <TouchableOpacity 
-              key={opcion.id} 
-              style={styles.menuItem} 
-              onPress={opcion.accion}
-            >
-              <Text style={styles.menuText}>{opcion.titulo}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  fondo: {
-    flex: 1,
-    width:"100%",
-    height:"100%"
-  },
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -492,10 +649,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
 
   },
-  titulo: {
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
+    marginLeft: 5,
   },
   menuButton: {
     padding: 5,
@@ -519,43 +682,70 @@ const styles = StyleSheet.create({
   },
   sideMenuDropdown: {
     position: 'absolute',
-    top: 45,
-    right: 10,
-    backgroundColor: 'rgba(25, 25, 25, 0.9)',
-    borderRadius: 8,
-    padding: 5,
-    width: 200,
+    top: 80,
+    right: 15,
+    backgroundColor: 'rgba(25, 25, 25, 0.95)',
+    borderRadius: 12,
+    padding: 8,
+    width: 220,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
     zIndex: 1000,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  sideMenuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 5,
   },
   sideMenuTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
+    marginLeft: 8,
   },
   menuItem: {
-    padding: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#444',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   menuText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
+    marginLeft: 10,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  loadingSpinner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 5,
+    borderColor: '#00d4ff',
+    borderTopColor: 'transparent',
+    marginBottom: 10,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   planetList: {
     flex: 1,
@@ -607,12 +797,6 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
   modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  modalContent: {
     width: '90%',
     height: '80%',
     backgroundColor: 'rgba(42, 42, 64, 0.95)',
@@ -628,7 +812,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  modalScroll: {
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+  },
+  modalContentContainer: {
     alignItems: 'center',
     paddingBottom: 20,
   },
@@ -714,5 +908,287 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-  }
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 10,
+    paddingBottom: 20, // Espacio adicional en la parte inferior
+  },
+  scrollContent: {
+    paddingBottom: 100, // Espacio para la barra de navegación
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  planetsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  planetCard: {
+    width: '48%', // Porcentaje en lugar de cálculo con width
+    height: 200,
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  planetCardTouchable: {
+    flex: 1,
+  },
+  planetImageContainer: {
+    width: '100%',
+    height: '70%',
+    position: 'relative',
+  },
+  planetImage: {
+    width: '100%',
+    height: '100%',
+  },
+  planetImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  planetInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  planetName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  planetDescription: {
+    fontSize: 11,
+    color: '#ccc',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  objectCard: {
+    width: '48%', // Porcentaje en lugar de cálculo con width
+    height: 200,
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  objectCardTouchable: {
+    flex: 1,
+  },
+  objectImageContainer: {
+    width: '100%',
+    height: '70%',
+    position: 'relative',
+  },
+  objectImage: {
+    width: '100%',
+    height: '100%',
+  },
+  objectImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  objectInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  objectName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  objectDescription: {
+    fontSize: 11,
+    color: '#ccc',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  objectsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  modalImageContainer: {
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalInfoContainer: {
+    width: '100%',
+    paddingHorizontal: 10,
+    marginBottom: 15,
+  },
+  modalPlanetName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#ccc',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  scientificData: {
+    marginBottom: 15,
+  },
+  dataTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00d4ff',
+    marginBottom: 10,
+    textAlign: 'left',
+  },
+  dataGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+  },
+  dataItem: {
+    width: '45%', // 45% del ancho de la pantalla
+    marginVertical: 5,
+    alignItems: 'center',
+  },
+  dataLabel: {
+    fontSize: 12,
+    color: '#ccc',
+    marginTop: 5,
+  },
+  dataValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  nasaSection: {
+    marginTop: 15,
+    width: '100%',
+  },
+  nasaTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffd700',
+    marginBottom: 10,
+    textAlign: 'left',
+  },
+  nasaImagesContainer: {
+    flexDirection: 'row',
+    maxHeight: 150,
+  },
+  nasaImage: {
+    width: 120,
+    height: 80,
+    marginRight: 10,
+    borderRadius: 8,
+  },
+  nasaDataSection: {
+    marginTop: 15,
+    width: '100%',
+  },
+  nasaDataContent: {
+    width: '100%',
+  },
+  nasaDataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  nasaDataText: {
+    fontSize: 14,
+    color: '#ccc',
+    marginLeft: 10,
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  solarSystemContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000011',
+    width: '100%',
+    height: '100%',
+    paddingVertical: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  text: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 10,
+  },
 });

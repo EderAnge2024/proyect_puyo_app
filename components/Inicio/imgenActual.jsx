@@ -89,12 +89,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)', // oscurece un poco para mejor lectura
   },
-  sistemaRotacion:{
-    zIndex:1000,
-    position:'absolute',
-    backgroundColor: 'transparent',
-    right:15
-  },
   logo_codigos_del_cosmos:{
     justifyContent:"left",
     position:"absolute",
@@ -109,7 +103,7 @@ const styles = StyleSheet.create({
   },
   texto_logo:{
     color:"#fff",
-    fontSize:20,
+    fontSize:17,
     fontWeight:"bold",
     justifyContent:"left",
     position:"absolute",

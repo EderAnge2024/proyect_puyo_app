@@ -1,7 +1,9 @@
+import { IconContainerStyles } from '@/constants/TabBarStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { View } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -9,30 +11,50 @@ export default function TabLayout() {
       screenOptions={{ 
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 70,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
           borderTopWidth: 0,
-          elevation: 8,
+          elevation: 20,
           shadowColor: '#000',
           shadowOffset: {
             width: 0,
-            height: -2,
+            height: -4,
           },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
-          height: Platform.OS === 'ios' ? 80 : 62,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          paddingTop: 0,
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          paddingBottom: 15,
+          paddingTop: 8,
+          paddingHorizontal: 10,
         },
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#8a8a8a',
+        tabBarBackground: () => (
+          <BlurView 
+            intensity={30} 
+            tint="dark" 
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+        ),
+        tabBarActiveTintColor: '#00d4ff',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 2,
+          letterSpacing: 0.5,
+          textAlign: 'center',
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 2,
+          marginBottom: 0,
         },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+          paddingHorizontal: 8,
+        },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen
@@ -40,37 +62,58 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons 
-              name={focused ? 'home' : 'home-outline'} 
-              size={size} 
-              color={color} 
-            />
+            <View style={[
+              IconContainerStyles.container,
+              focused && IconContainerStyles.active
+            ]}>
+              <Ionicons 
+                name={focused ? 'home' : 'home-outline'} 
+                size={focused ? 26 : 24} 
+                color={color} 
+                style={IconContainerStyles.icon}
+              />
+              {focused && <View style={IconContainerStyles.indicator} />}
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="planets"
         options={{
-          title: 'Descrube mas!',
+          title: 'Explorar',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons 
-              name={focused ? 'planet' : 'planet-outline'} 
-              size={size} 
-              color={color} 
-            />
+            <View style={[
+              IconContainerStyles.container,
+              focused && IconContainerStyles.active
+            ]}>
+              <Ionicons 
+                name={focused ? 'planet' : 'planet-outline'} 
+                size={focused ? 26 : 24} 
+                color={color} 
+                style={IconContainerStyles.icon}
+              />
+              {focused && <View style={IconContainerStyles.indicator} />}
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="questions"
         options={{
-          title: 'Minijuegos',
+          title: 'Quiz',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons 
-              name={focused ? 'help-circle' : 'help-circle-outline'} 
-              size={size} 
-              color={color} 
-            />
+            <View style={[
+              IconContainerStyles.container,
+              focused && IconContainerStyles.active
+            ]}>
+              <Ionicons 
+                name={focused ? 'game-controller' : 'game-controller-outline'} 
+                size={focused ? 26 : 24} 
+                color={color} 
+                style={IconContainerStyles.icon}
+              />
+              {focused && <View style={IconContainerStyles.indicator} />}
+            </View>
           ),
         }}
       />
